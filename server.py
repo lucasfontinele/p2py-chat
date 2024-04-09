@@ -10,10 +10,10 @@ def handle_client(client_socket, clients):
                 clients.remove(client_socket)
                 client_socket.close()
                 break
-            print("Received message:", message)
+            print("Mensagem recebida:", message)
             broadcast(message, client_socket, clients)
         except Exception as e:
-            print("Error:", e)
+            print("Erro:", e)
             clients.remove(client_socket)
             client_socket.close()
             break
@@ -33,14 +33,14 @@ def start_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind(('0.0.0.0', 5555))
     server_socket.listen(5)
-    print("Server started listening on port 5555...")
+    print("Servidor inicializado na porta 5555 🚀")
 
     clients = []
 
     while True:
         client_socket, addr = server_socket.accept()
         clients.append(client_socket)
-        print("Connected to:", addr)
+        print("Nova conexão:", addr)
 
         client_handler = threading.Thread(target=handle_client, args=(client_socket, clients))
         client_handler.start()

@@ -8,18 +8,18 @@ def receive_messages(client_socket):
             message = client_socket.recv(1024).decode()
             print(message)
         except Exception as e:
-            print("Error:", e)
+            print("Erro:", e)
             break
 
 
 def start_client():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_ip = input("Enter server IP: ")
+    server_ip = input("Informe o endereço de ip: ")
     server_port = 5555
 
     try:
         client_socket.connect((server_ip, server_port))
-        print("Connected to server.")
+        print("Conectado ao servidor. 🚀")
 
         receive_thread = threading.Thread(target=receive_messages, args=(client_socket,))
         receive_thread.start()
@@ -28,7 +28,7 @@ def start_client():
             message = input()
             client_socket.send(message.encode())
     except Exception as e:
-        print("Error:", e)
+        print("Erro:", e)
         client_socket.close()
 
 
