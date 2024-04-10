@@ -8,6 +8,8 @@ class Server:
         self.server_socket.bind(("0.0.0.0", 5555))
         self.server_socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
         self.MCAST_GRP = '224.0.0.1'
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.clients = {}
 
         self.clients = {}
 
@@ -36,11 +38,13 @@ class Server:
                 self.server_socket.sendto(f"{sender_name}: {message}".encode(), (self.MCAST_GRP, 5555))
 
     def start_server(self):
+        self.socket.bind(('0.0.0.0', 5555))
+        self.socket.listen()
         print("Servidor inicializado na porta 5555 🚀")
 
         while True:
-            message, client_address = self.server_socket.recvfrom(1024)
+            message, client_address = self.socket.accept()
             print("Nova conexão: ", client_address[0])
 
-            client_thread = threading.Thread(target=self.handle_client, args=(message.decode(), client_address))
+            client_thread = threading.Thread(target=self.handle_client, args=(message, client_address))
             client_thread.start()

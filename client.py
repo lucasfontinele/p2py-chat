@@ -3,6 +3,8 @@ import threading
 import time
 import server
 
+_server = server.Server()
+
 
 def discover_server():
     multicast_group = '224.0.0.1'
@@ -37,13 +39,13 @@ def receive_messages(client_socket):
         try:
             message = client_socket.recv(1024).decode()
             if not message:
-                print("Lost connection to server. Attempting to become a server...")
-                server.start_server()
+                print("Iniciando servidor.")
+                _server.start_server()
                 break
             print(f"Mensagem recebida: {message}")
         except ConnectionResetError:
-            print("Lost connection to server. Attempting to become a server...")
-            server.start_server()
+            print("Iniciando servidor.")
+            _server.start_server()
             break
         except Exception as e:
             print("Error:", e)
@@ -55,8 +57,6 @@ def start_client():
 
     # if found_server is None:
     #     raise Exception("Nenhum servidor encontrado")
-    time.sleep(5)
-
 
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_ip = str(found_server)
