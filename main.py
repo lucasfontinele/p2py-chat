@@ -1,11 +1,15 @@
 import sys
-import server
+from server import Server
 import client
 
 arguments = sys.argv
 
-if len(arguments) > 1 and arguments[1] == "server":
-    server.start_server()
-else:
-    client.start_client()
+try:
+    if len(arguments) > 1 and arguments[1] == "server":
+        _server = Server()
+        _server.start_server()
+    else:
+        client.start_client()
+except KeyboardInterrupt:
+    print("Desconectado")
 

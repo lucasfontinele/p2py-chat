@@ -2,53 +2,58 @@ import socket
 import threading
 
 
-def handle_client(client_socket, clients, client_address):
-    client_name = client_socket.recv(1024).decode()  # Recebe o nome do cliente
-    clients[client_socket] = client_name  # Adiciona o cliente à lista de clientes conectados
-    print(f"{client_name} ({client_address}) conectado ao servidor.")
+class Server:
+    def __init__(self):
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.clients = {}
 
-    while True:
-        try:
-            message = client_socket.recv(1024).decode()
-            if not message:
-                del clients[client_socket]  # Remove o cliente da lista quando ele desconectar
-                client_socket.close()
-                broadcast(f"{client_name} saiu do chat.", clients)
-                break
-            print(f"Mensagem recebida de {client_name}: {message}")
-            broadcast(f"{client_name}: {message}", clients, sender_socket=client_socket)
-        except Exception as e:
-            print("Erro:", e)
-            del clients[client_socket]
-            client_socket.close()
-            broadcast(f"{client_name} saiu do chat.", clients)
-            break
+    def remove_from_chat(self, client_socket, client_name):
+        del self.clients[client_name]
+        client_socket.close()
+        self.broadcast(f"{client_name} saiu do chat.")
 
+    def handle_client(self, client_socket, client_address):
+        client_name = client_address[0]
+        self.clients[client_name] = (client_name, client_socket)
 
-def broadcast(message, clients, sender_socket):
-    sender_name = clients[sender_socket]
-    for client_socket, name in clients.items():
-        if client_socket != sender_socket:
+        while True:
             try:
-                client_socket.send(f"{sender_name}: {message}".encode())
-            except:
-                del clients[client_socket]
-                client_socket.close()
-                broadcast(f"{name} saiu do chat.", clients)
+                message = client_socket.recv(1024).decode()
 
+                if not message:
+                    self.remove_from_chat(client_socket, client_name)
+                    break
 
-def start_server():
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(('0.0.0.0', 5555))
-    server_socket.listen(5)
-    print("Servidor inicializado na porta 5555 🚀")
+                if message == "HELLO":
+                    client_socket.send(b"SERVER")
+                else:
+                    print(f"Mensagem recebida de {client_name}: {message}")
+                    self.broadcast(f"{client_name}: {message}", client_name)
 
-    clients = []
+            except Exception as e:
+                print("Erro:", e)
+                self.remove_from_chat(client_socket, client_name)
+                break
 
-    while True:
-        client_socket, addr = server_socket.accept()
-        clients.append(client_socket)
-        print("Nova conexão:", addr)
+    def broadcast(self, message, sender_socket=None):
+        sender_name = None
+        if sender_socket:
+            sender_name = self.clients[sender_socket][0]
+        for client_socket, (name, _) in self.clients.items():
+            if client_socket != sender_socket:
+                try:
+                    client_socket.send(f"{sender_name}: {message}".encode())
+                except:
+                    self.remove_from_chat(client_socket, name)
 
-        client_handler = threading.Thread(target=handle_client, args=(client_socket, clients))
-        client_handler.start()
+    def start_server(self):
+        self.server_socket.bind(('0.0.0.0', 5555))
+        self.server_socket.listen()
+        print("Servidor inicializado na porta 5555 🚀")
+
+        while True:
+            client_socket, client_address = self.server_socket.accept()
+            print("Nova conexão: ", client_address[0])
+
+            client_handler = threading.Thread(target=self.handle_client, args=(client_socket, client_address))
+            client_handler.start()
