@@ -4,33 +4,31 @@ import time
 import server
 
 
-def discover_new_server():
-    udp_port = 5555
+def discover_server():
+    MULTICAST_GROUP = '224.0.0.1'
+    PORT = 5555
+    MESSAGE = b"HELLO"
 
-    discovery_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    discovery_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    discovery_socket.settimeout(20)
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    client_socket.settimeout(2)  # Tempo limite para receber respostas
 
     try:
-        discovery_socket.sendto(b"HELLO", ("<broadcast>", udp_port))
+        client_socket.sendto(MESSAGE, (MULTICAST_GROUP, PORT))
 
         servers = set()
 
-        data, addr = discovery_socket.recvfrom(1024, 4)
+        while True:
+            try:
+                data, addr = client_socket.recvfrom(1024)
+                servers.add(addr[0])
+            except socket.timeout:
+                break
 
-        print(f"data received {data}")
+        client_socket.close()
 
-        if data == b"SERVER":
-            servers.add(addr[0])
-
-        discovery_socket.close()
-
-        if servers:
-            return servers.pop()
-        else:
-            return None
+        return servers if servers else None
     except Exception as e:
-        print("Error during discovery:", e)
+        print("Error during server discovery:", e)
         return None
 
 
@@ -53,7 +51,7 @@ def receive_messages(client_socket):
 
 
 def start_client():
-    server = discover_new_server()
+    server = discover_server()
 
     print(server, "Server")
 

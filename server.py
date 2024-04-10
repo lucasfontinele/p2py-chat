@@ -1,59 +1,46 @@
 import socket
 import threading
 
-
 class Server:
     def __init__(self):
-        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server_socket.bind(("0.0.0.0", 5555))
+        self.server_socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+        self.MCAST_GRP = '224.0.0.1'
+
         self.clients = {}
 
-    def remove_from_chat(self, client_socket, client_name):
+    def remove_from_chat(self, client_name):
         del self.clients[client_name]
-        client_socket.close()
         self.broadcast(f"{client_name} saiu do chat.")
 
-    def handle_client(self, client_socket, client_address):
+    def handle_client(self, message, client_address):
         client_name = client_address[0]
-        self.clients[client_name] = (client_name, client_socket)
+        if client_name not in self.clients:
+            self.clients[client_name] = (client_name, None)  # For UDP, client_socket is not needed
 
-        while True:
-            try:
-                message = client_socket.recv(1024).decode()
+        if not message:
+            self.remove_from_chat(client_name)
+            return
 
-                if not message:
-                    self.remove_from_chat(client_socket, client_name)
-                    break
+        if message == "HELLO":
+            self.server_socket.sendto(b"SERVER", client_address)
+        else:
+            print(f"Mensagem recebida de {client_name}: {message}")
+            self.broadcast(f"{client_name}: {message}", client_name)
 
-                if message == "HELLO":
-                    client_socket.send(b"SERVER")
-                else:
-                    print(f"Mensagem recebida de {client_name}: {message}")
-                    self.broadcast(f"{client_name}: {message}", client_name)
-
-            except Exception as e:
-                print("Erro:", e)
-                self.remove_from_chat(client_socket, client_name)
-                break
-
-    def broadcast(self, message, sender_socket=None):
-        sender_name = None
-        if sender_socket:
-            sender_name = self.clients[sender_socket][0]
-        for client_socket, (name, _) in self.clients.items():
-            if client_socket != sender_socket:
-                try:
-                    client_socket.send(f"{sender_name}: {message}".encode())
-                except:
-                    self.remove_from_chat(client_socket, name)
+    def broadcast(self, message, sender_name=None):
+        for name, _ in self.clients.values():
+            if name != sender_name:
+                self.server_socket.sendto(f"{sender_name}: {message}".encode(), (self.MCAST_GRP, 5555))
 
     def start_server(self):
-        self.server_socket.bind(('0.0.0.0', 5555))
-        self.server_socket.listen()
         print("Servidor inicializado na porta 5555 🚀")
 
         while True:
-            client_socket, client_address = self.server_socket.accept()
+            message, client_address = self.server_socket.recvfrom(1024)
             print("Nova conexão: ", client_address[0])
 
-            client_handler = threading.Thread(target=self.handle_client, args=(client_socket, client_address))
-            client_handler.start()
+            client_thread = threading.Thread(target=self.handle_client, args=(message.decode(), client_address))
+            client_thread.start()
