@@ -1,6 +1,7 @@
 import socket
 import threading
 import time
+import server
 
 
 def discover_new_server():
@@ -41,12 +42,12 @@ def receive_messages(client_socket):
             message = client_socket.recv(1024).decode()
             if not message:
                 print("Lost connection to server. Attempting to become a server...")
-                discover_new_server()
+                server.start_server()
                 break
             print(message)
         except ConnectionResetError:
             print("Lost connection to server. Attempting to become a server...")
-            discover_new_server()
+            server.start_server()
             break
         except Exception as e:
             print("Error:", e)
