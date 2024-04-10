@@ -44,6 +44,3 @@ def start_server():
 
         client_handler = threading.Thread(target=handle_client, args=(client_socket, clients))
         client_handler.start()
-
-
-start_server()
