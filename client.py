@@ -56,7 +56,7 @@ def receive_messages(client_socket):
 
 def start_client():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_ip = input("Informe o endereço de ip: ")
+    server_ip = "192.168.1.3"
     server_port = 5555
 
     try:
